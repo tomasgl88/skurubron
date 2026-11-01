@@ -35,6 +35,7 @@
   .kpi .label { color:var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
   .kpi .value { font-size:1.8rem; font-weight:600; margin-top:6px; }
   .kpi .value small { font-size:1rem; color:var(--muted); font-weight:400; }
+  .kpi .sub { color:var(--muted); font-size:.72rem; margin-top:6px; }
   .card { background:var(--card); border-radius:12px; padding:20px; margin-bottom:24px; }
   .card h2 { font-size:1.05rem; margin:0 0 16px; font-weight:600; }
   .chartbox { position:relative; height:300px; }
@@ -193,17 +194,27 @@ function render(data) {
     `Källa: <a href="${data.source}" target="_blank" rel="noopener">Transportstyrelsen, infrastrukturavgift Skurubron</a> · Uppdaterad ${updated}`;
 
   const totalPass = rows.reduce((s,r)=>s+(r.passages_total||0),0);
-  const totalPaid = rows.reduce((s,r)=>s+(r.fee_amount_total||0),0);
+  const feeMonths = rows.filter(r => r.fee_amount_total != null);
+  const totalPaid = feeMonths.reduce((s,r)=>s+r.fee_amount_total,0);
   const last = rows[rows.length-1];
-  const avgMonthPaid = Math.round(totalPaid/rows.length);
+  // Average over months that actually have fee data, not including the
+  // not-yet-reported latest month.
+  const avgMonthPaid = feeMonths.length ? Math.round(totalPaid/feeMonths.length) : 0;
+
+  const START = "okt 2023";
+  const feeEnd = feeMonths.length
+    ? `${MONTHS[feeMonths[feeMonths.length-1].month]} ${feeMonths[feeMonths.length-1].year}`
+    : START;
+
   const kpis = [
-    {label:"Passager totalt", value:fmt(totalPass)},
-    {label:"Betalt totalt", value:fmt(totalPaid)+" <small>kr</small>"},
+    {label:"Passager totalt", value:fmt(totalPass), sub:`sedan ${START}`},
+    {label:"Betalt totalt", value:fmt(totalPaid)+" <small>kr</small>", sub:`${START} – ${feeEnd}`},
     {label:`Senaste månad (${MONTHS[last.month]} ${last.year})`, value:fmt(last.passages_total)+" <small>passager</small>"},
     {label:"Snitt betalt / månad", value:fmt(avgMonthPaid)+" <small>kr</small>"},
   ];
   document.getElementById("kpis").innerHTML = kpis.map(k =>
-    `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div></div>`).join("");
+    `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div>`+
+    `${k.sub ? `<div class="sub">${k.sub}</div>` : ""}</div>`).join("");
 
   document.querySelector("#table tbody").innerHTML = rows.slice().reverse().map(r =>
     `<tr><td>${MONTHS[r.month]} ${r.year}</td><td>${fmt(r.passages_total)}</td>`+

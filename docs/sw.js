@@ -4,7 +4,7 @@
 //     and works fully offline.
 //   - data.json: network-first with cache fallback, so when online we pick up a
 //     freshly published month, but offline we still show the last data we had.
-const VERSION = "skurubron-v5";
+const VERSION = "skurubron-v6";
 const SHELL = [
   "./index.html",
   "./manifest.webmanifest",
