@@ -221,23 +221,27 @@ function render(data) {
   // chart box scroll horizontally on a phone instead of cramming 36 bars in.
   const passBox = document.getElementById("passChart").parentElement;
   passBox.style.minWidth = Math.max(passBox.clientWidth, rows.length * 26) + "px";
+  const passRows = rows.slice().reverse();            // newest to the left
   charts.push(new Chart(document.getElementById("passChart"), {
     type:"bar",
-    data:{ labels, datasets:[
-      { label:"Antal passager", data:rows.map(r=>r.passages_total),
+    data:{ labels: passRows.map(r => `${MONTHS[r.month]} ${String(r.year).slice(2)}`),
+      datasets:[
+      { label:"Antal passager", data:passRows.map(r=>r.passages_total),
         backgroundColor:"#4cc9f0", borderRadius:3 },
     ]},
     options: { ...baseOpts, plugins:{ ...baseOpts.plugins, legend:{ display:false } } }
   }));
+  // Fee data lags passages by a month, so only plot months that actually have a
+  // published fee total. This avoids the line/fill dropping to 0 for the most
+  // recent (not-yet-reported) month.
+  const feeRows = rows.filter(r => r.fee_amount_total != null);
   charts.push(new Chart(document.getElementById("feeChart"), {
     type:"line",
-    data:{ labels, datasets:[
-      { label:"Betald broavgift (kr)",
-        // Months without published fee data become null so Chart.js skips them
-        // (no misleading drop to 0 for the most recent, not-yet-reported month).
-        data:rows.map(r=> r.fee_amount_total==null ? null : r.fee_amount_total),
+    data:{ labels: feeRows.map(r => `${MONTHS[r.month]} ${String(r.year).slice(2)}`),
+      datasets:[
+      { label:"Betald broavgift (kr)", data:feeRows.map(r=>r.fee_amount_total),
         borderColor:"#f72585", backgroundColor:"rgba(247,37,133,.15)",
-        fill:true, tension:.25, spanGaps:false },
+        fill:true, tension:.25 },
     ]},
     options: baseOpts
   }));
