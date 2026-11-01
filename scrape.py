@@ -260,7 +260,10 @@ def main():
         sys.exit(1)
 
     for r in all_rows:
-        r["fee_amount_total"] = (r.get("fee_amount_se") or 0) + (r.get("fee_amount_foreign") or 0)
+        se, fo = r.get("fee_amount_se"), r.get("fee_amount_foreign")
+        # None (not published yet) must stay None, not become 0 -- a genuine 0 and
+        # "not published" are different things for the chart and the KPIs.
+        r["fee_amount_total"] = None if (se is None and fo is None) else (se or 0) + (fo or 0)
 
     # --- SQLite ---
     con = sqlite3.connect(DB)

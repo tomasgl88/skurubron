@@ -38,6 +38,9 @@
   .card { background:var(--card); border-radius:12px; padding:20px; margin-bottom:24px; }
   .card h2 { font-size:1.05rem; margin:0 0 16px; font-weight:600; }
   .chartbox { position:relative; height:300px; }
+  .chartscroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .chartscroll .chartbox { height:300px; }
+  .hint { color:var(--muted); font-size:.72rem; margin:-8px 0 0; }
   canvas { max-height:340px; }
   table { width:100%; border-collapse:collapse; font-size:.85rem; }
   th, td { text-align:right; padding:8px 10px; border-bottom:1px solid var(--line); }
@@ -70,7 +73,8 @@
 
   <div class="card">
     <h2>Antal passager per månad</h2>
-    <div class="chartbox"><canvas id="passChart"></canvas></div>
+    <div class="chartscroll"><div class="chartbox"><canvas id="passChart"></canvas></div></div>
+    <p class="hint">Dra i sidled för att se alla månader.</p>
   </div>
 
   <div class="card">
@@ -197,7 +201,7 @@ function render(data) {
   document.getElementById("kpis").innerHTML = kpis.map(k =>
     `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div></div>`).join("");
 
-  document.querySelector("#table tbody").innerHTML = rows.map(r =>
+  document.querySelector("#table tbody").innerHTML = rows.slice().reverse().map(r =>
     `<tr><td>${MONTHS[r.month]} ${r.year}</td><td>${fmt(r.passages_total)}</td>`+
     `<td>${fmt(r.passages_chargeable)}</td><td>${fmt(r.fee_amount_se)}</td>`+
     `<td>${fmt(r.fee_amount_foreign)}</td><td>${fmt(r.fee_amount_total)}</td></tr>`).join("");
@@ -213,19 +217,27 @@ function render(data) {
   };
 
   charts.forEach(c => c.destroy()); charts = [];
+  // Give each month room: widen the canvas so bars are readable, and let the
+  // chart box scroll horizontally on a phone instead of cramming 36 bars in.
+  const passBox = document.getElementById("passChart").parentElement;
+  passBox.style.minWidth = Math.max(passBox.clientWidth, rows.length * 26) + "px";
   charts.push(new Chart(document.getElementById("passChart"), {
     type:"bar",
     data:{ labels, datasets:[
-      { label:"Totalt antal passager", data:rows.map(r=>r.passages_total), backgroundColor:"#4cc9f0" },
-      { label:"Avgiftspliktiga", data:rows.map(r=>r.passages_chargeable), backgroundColor:"#80ffdb" },
+      { label:"Antal passager", data:rows.map(r=>r.passages_total),
+        backgroundColor:"#4cc9f0", borderRadius:3 },
     ]},
-    options: baseOpts
+    options: { ...baseOpts, plugins:{ ...baseOpts.plugins, legend:{ display:false } } }
   }));
   charts.push(new Chart(document.getElementById("feeChart"), {
     type:"line",
     data:{ labels, datasets:[
-      { label:"Betald broavgift (kr)", data:rows.map(r=>r.fee_amount_total),
-        borderColor:"#f72585", backgroundColor:"rgba(247,37,133,.15)", fill:true, tension:.25 },
+      { label:"Betald broavgift (kr)",
+        // Months without published fee data become null so Chart.js skips them
+        // (no misleading drop to 0 for the most recent, not-yet-reported month).
+        data:rows.map(r=> r.fee_amount_total==null ? null : r.fee_amount_total),
+        borderColor:"#f72585", backgroundColor:"rgba(247,37,133,.15)",
+        fill:true, tension:.25, spanGaps:false },
     ]},
     options: baseOpts
   }));
