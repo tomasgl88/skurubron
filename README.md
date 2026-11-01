@@ -14,16 +14,23 @@ Data kommer från Transportstyrelsens offentliga statistik för infrastrukturavg
   - `index.html`, `sw.js`, `manifest.webmanifest`, ikoner
   - `data.json` – datafilen appen läser.
 
-## Uppdatera data (en gång i månaden)
+## Uppdatering av data (automatisk)
+
+En GitHub Actions-workflow (`.github/workflows/update-data.yml`) kör scrapern i
+molnet dagligen (05:17 UTC). Scrapern gör bara ett verkligt hämtningsjobb när en
+nyare månad rimligen kan finnas; övriga dagar är det en billig no-op. När
+`docs/data.json` ändras committas och pushas den automatiskt, och GitHub Pages
+publicerar om. Ingen dator behövs.
+
+Du kan även köra den manuellt: Actions-fliken → "Update Skurubron data" →
+"Run workflow".
+
+### Köra lokalt (vid behov)
 
 ```bash
-uv run --quiet --script scrape.py       # hämtar bara om det finns nytt
-git add docs/data.json
-git commit -m "data: uppdatera månadsstatistik"
-git push
+uv run --quiet --script scrape.py            # hämtar bara om det finns nytt
+uv run --quiet --script scrape.py --force    # bygg om oavsett
 ```
-
-GitHub Pages publicerar automatiskt om efter push.
 
 ## Publicering (GitHub Pages)
 

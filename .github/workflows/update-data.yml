@@ -1,0 +1,48 @@
+name: Update Skurubron data
+
+# Runs the scraper in the cloud and publishes docs/data.json when it changes.
+# No laptop needed -- GitHub Pages then redeploys automatically.
+
+on:
+  schedule:
+    # Run daily at 05:17 UTC. The scraper itself only does real work when a newer
+    # month can plausibly exist (its Gate 1/Gate 2 logic), so most days it is a
+    # cheap no-op. Daily cadence means a mid-month publication is picked up within
+    # a day instead of waiting weeks.
+    - cron: "17 5 * * *"
+  workflow_dispatch:        # allow manual "Run workflow" from the Actions tab
+
+# Let the workflow commit back to the repo.
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Run scraper
+        # uv reads the inline PEP 723 dependencies from scrape.py itself.
+        run: uv run --quiet --script scrape.py
+
+      - name: Commit data if it changed
+        run: |
+          if git diff --quiet -- docs/data.json; then
+            echo "No data change — nothing to commit."
+          else
+            git config user.name  "skurubron-bot"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docs/data.json
+            git commit -m "data: automatisk månadsuppdatering [skip ci]"
+            git push
+            echo "Updated docs/data.json."
+          fi
