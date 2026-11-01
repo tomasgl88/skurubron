@@ -1,0 +1,5 @@
+# Local SQLite copy is a build artifact; the published app reads docs/data.json.
+data/
+__pycache__/
+*.pyc
+.DS_Store

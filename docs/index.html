@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Skurubron – passager & broavgift</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d1b2a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Skurubron">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#0d1b2a; --card:#1b263b; --ink:#e0e1dd; --muted:#9db4c0;
+    --accent:#4cc9f0; --accent2:#80ffdb; --line:#2a3a52;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0 auto; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); max-width:1100px;
+    padding:
+      calc(env(safe-area-inset-top) + 20px)
+      calc(env(safe-area-inset-right) + 18px)
+      calc(env(safe-area-inset-bottom) + 28px)
+      calc(env(safe-area-inset-left) + 18px);
+    -webkit-text-size-adjust:100%;
+  }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:.85rem; margin-bottom:24px; }
+  .sub a { color:var(--accent); }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:28px; }
+  .kpi { background:var(--card); border-radius:12px; padding:18px 20px; }
+  .kpi .label { color:var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
+  .kpi .value { font-size:1.8rem; font-weight:600; margin-top:6px; }
+  .kpi .value small { font-size:1rem; color:var(--muted); font-weight:400; }
+  .card { background:var(--card); border-radius:12px; padding:20px; margin-bottom:24px; }
+  .card h2 { font-size:1.05rem; margin:0 0 16px; font-weight:600; }
+  .chartbox { position:relative; height:300px; }
+  canvas { max-height:340px; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th, td { text-align:right; padding:8px 10px; border-bottom:1px solid var(--line); }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { color:var(--muted); font-weight:500; position:sticky; top:0; background:var(--card); }
+  .tablewrap { max-height:420px; overflow:auto; }
+  .note { color:var(--muted); font-size:.75rem; margin-top:8px; }
+  .facts { background:var(--card); border-radius:12px; padding:20px; margin-bottom:24px; border-left:3px solid var(--accent); }
+  .facts h2 { font-size:1.05rem; margin:0 0 12px; font-weight:600; }
+  .facts ul { margin:0 0 12px; padding-left:20px; }
+  .facts li { margin:4px 0; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .refresh { background:var(--accent); color:#06202e; border:none; border-radius:999px;
+    padding:9px 16px; font-size:.9rem; font-weight:600; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .refresh:active { opacity:.8; }
+  .refresh[disabled] { opacity:.5; cursor:default; }
+  .status { color:var(--muted); font-size:.78rem; min-height:1.1em; margin:2px 0 20px; }
+  .facts .disclaimer { color:var(--muted); font-size:.78rem; border-top:1px solid var(--line); padding-top:12px; margin-top:4px; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Skurubron – passager &amp; broavgift</h1>
+    <button class="refresh" id="refreshBtn">Uppdatera</button>
+  </div>
+  <div class="sub" id="meta"></div>
+  <div class="status" id="status"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <h2>Antal passager per månad</h2>
+    <div class="chartbox"><canvas id="passChart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h2>Betald broavgift per månad (kr)</h2>
+    <div class="chartbox"><canvas id="feeChart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h2>Månadsdata</h2>
+    <div class="tablewrap">
+      <table id="table">
+        <thead><tr>
+          <th>Månad</th><th>Passager</th><th>Avgiftspliktiga</th>
+          <th>Avgift SE (kr)</th><th>Avgift utl. (kr)</th><th>Totalt (kr)</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="note">Avgiften infördes 1 oktober 2023. Belopp avser avgiftsbeslut (svenska + utländska fordon).</p>
+  </div>
+
+  <div class="facts">
+    <h2>Om byggkostnaden och finansieringen</h2>
+    <ul>
+      <li>Nya Skurubron beräknas kosta <strong>cirka 1 miljard kronor</strong> (prisnivå 2016).</li>
+      <li>Finansiering: <strong>1/3 statliga medel, 2/3 broavgift.</strong></li>
+      <li>Avgiften är <strong>4 kr per passage</strong> och tas ut tills lånet är återbetalt – beräknat till <strong>omkring 22 år</strong>.</li>
+      <li>Gamla bron (ombyggnad ca 300 MSEK, prisnivå 2016) finansieras helt med statliga medel och är avgiftsfri.</li>
+    </ul>
+    <p class="disclaimer">
+      Det totala belopp som ska drivas in via broavgiften publiceras inte som en enskild siffra.
+      Utöver själva byggkostnadsandelen (ca 2/3 av bron) tillkommer ränta och administrativa kostnader,
+      och återbetalningstiden justeras löpande med trafikutveckling och ränteläge. Därför visar appen
+      faktiskt inbetalt belopp per månad – inte hur stor andel av ett slutmål det utgör.
+      Källa: Trafikverket, projekt Väg 222 Skurubron.
+    </p>
+  </div>
+
+<script>
+const MONTHS = ["","jan","feb","mar","apr","maj","jun","jul","aug","sep","okt","nov","dec"];
+const fmt = n => n==null ? "–" : n.toLocaleString("sv-SE");
+
+// Local cache key for the last dataset we successfully loaded.
+const LS_KEY = "skurubron.data";
+
+const statusEl = () => document.getElementById("status");
+function setStatus(msg) { statusEl().textContent = msg; }
+
+// Convert "YYYY-MM" to a comparable integer YYYYMM.
+const ymInt = s => s ? parseInt(s.replace("-",""),10) : 0;
+
+// Latest completed month that could plausibly be published (current month - 1),
+// mirroring the scraper's Gate 1. Returns int YYYYMM.
+function latestCandidateYM() {
+  const d = new Date();
+  let y = d.getFullYear(), m = d.getMonth() + 1; // 1..12
+  m -= 1; if (m === 0) { m = 12; y -= 1; }
+  return y*100 + m;
+}
+
+// Decide whether it is worth hitting the network, given the cached dataset.
+// We only fetch if a newer month than we hold could plausibly exist.
+function needsFetch(cached) {
+  if (!cached || !cached.latest_month) return true;   // nothing cached -> must fetch
+  return ymInt(cached.latest_month) < latestCandidateYM();
+}
+
+function loadCached() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)); }
+  catch { return null; }
+}
+
+async function fetchData() {
+  // Cache-busting so Safari/SW gives us the freshest file when we DO ask.
+  const resp = await fetch("data.json?ts=" + Date.now(), { cache: "no-store" });
+  if (!resp.ok) throw new Error("HTTP " + resp.status);
+  return resp.json();
+}
+
+async function getData({ force = false } = {}) {
+  const cached = loadCached();
+
+  if (!force && cached && !needsFetch(cached)) {
+    setStatus(`Senaste data (${cached.latest_month}) är redan hämtad – inget nytt att hämta.`);
+    return cached;
+  }
+
+  try {
+    setStatus("Hämtar data …");
+    const fresh = await fetchData();
+    const cachedYM = cached ? ymInt(cached.latest_month) : 0;
+    if (ymInt(fresh.latest_month) > cachedYM || force || !cached) {
+      localStorage.setItem(LS_KEY, JSON.stringify(fresh));
+      setStatus(`Uppdaterad. Senaste månad: ${fresh.latest_month}.`);
+      return fresh;
+    }
+    setStatus(`Ingen ny data ännu. Senaste månad: ${cached.latest_month}.`);
+    return cached;
+  } catch (err) {
+    if (cached) { setStatus(`Offline – visar sparad data (${cached.latest_month}).`); return cached; }
+    setStatus("Kunde inte hämta data och inget finns sparat."); throw err;
+  }
+}
+
+let charts = [];
+function render(data) {
+  const rows = data.months;
+  const labels = rows.map(r => `${MONTHS[r.month]} ${String(r.year).slice(2)}`);
+
+  const updated = new Date(data.updated).toLocaleString("sv-SE");
+  document.getElementById("meta").innerHTML =
+    `Källa: <a href="${data.source}" target="_blank" rel="noopener">Transportstyrelsen, infrastrukturavgift Skurubron</a> · Uppdaterad ${updated}`;
+
+  const totalPass = rows.reduce((s,r)=>s+(r.passages_total||0),0);
+  const totalPaid = rows.reduce((s,r)=>s+(r.fee_amount_total||0),0);
+  const last = rows[rows.length-1];
+  const avgMonthPaid = Math.round(totalPaid/rows.length);
+  const kpis = [
+    {label:"Passager totalt", value:fmt(totalPass)},
+    {label:"Betalt totalt", value:fmt(totalPaid)+" <small>kr</small>"},
+    {label:`Senaste månad (${MONTHS[last.month]} ${last.year})`, value:fmt(last.passages_total)+" <small>passager</small>"},
+    {label:"Snitt betalt / månad", value:fmt(avgMonthPaid)+" <small>kr</small>"},
+  ];
+  document.getElementById("kpis").innerHTML = kpis.map(k =>
+    `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div></div>`).join("");
+
+  document.querySelector("#table tbody").innerHTML = rows.map(r =>
+    `<tr><td>${MONTHS[r.month]} ${r.year}</td><td>${fmt(r.passages_total)}</td>`+
+    `<td>${fmt(r.passages_chargeable)}</td><td>${fmt(r.fee_amount_se)}</td>`+
+    `<td>${fmt(r.fee_amount_foreign)}</td><td>${fmt(r.fee_amount_total)}</td></tr>`).join("");
+
+  const gridColor = "#2a3a52", tick = "#9db4c0";
+  const baseOpts = {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ labels:{ color:"#e0e1dd" } } },
+    scales:{
+      x:{ ticks:{ color:tick }, grid:{ color:gridColor } },
+      y:{ ticks:{ color:tick, callback:v=>v.toLocaleString("sv-SE") }, grid:{ color:gridColor }, beginAtZero:true }
+    }
+  };
+
+  charts.forEach(c => c.destroy()); charts = [];
+  charts.push(new Chart(document.getElementById("passChart"), {
+    type:"bar",
+    data:{ labels, datasets:[
+      { label:"Totalt antal passager", data:rows.map(r=>r.passages_total), backgroundColor:"#4cc9f0" },
+      { label:"Avgiftspliktiga", data:rows.map(r=>r.passages_chargeable), backgroundColor:"#80ffdb" },
+    ]},
+    options: baseOpts
+  }));
+  charts.push(new Chart(document.getElementById("feeChart"), {
+    type:"line",
+    data:{ labels, datasets:[
+      { label:"Betald broavgift (kr)", data:rows.map(r=>r.fee_amount_total),
+        borderColor:"#f72585", backgroundColor:"rgba(247,37,133,.15)", fill:true, tension:.25 },
+    ]},
+    options: baseOpts
+  }));
+}
+
+async function boot(force=false) {
+  const btn = document.getElementById("refreshBtn");
+  btn.disabled = true;
+  try { render(await getData({ force })); }
+  finally { btn.disabled = false; }
+}
+
+document.getElementById("refreshBtn").addEventListener("click", () => boot(true));
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+
+boot(false);
+</script>
+</body>
+</html>
