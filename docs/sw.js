@@ -4,7 +4,7 @@
 //     and works fully offline.
 //   - data.json: network-first with cache fallback, so when online we pick up a
 //     freshly published month, but offline we still show the last data we had.
-const VERSION = "skurubron-v4";
+const VERSION = "skurubron-v5";
 const SHELL = [
   "./index.html",
   "./manifest.webmanifest",
@@ -28,6 +28,20 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   const isData = url.pathname.endsWith("/data.json") || url.pathname.endsWith("data.json");
+
+  // Network-first for the app page itself, so UI/code updates always take effect
+  // on the next open (cache is only a fallback when offline).
+  const isPage = e.request.mode === "navigate"
+    || url.pathname.endsWith("/index.html")
+    || url.pathname.endsWith("/") ;
+  if (isPage) {
+    e.respondWith(
+      fetch(e.request)
+        .then((resp) => { const c = resp.clone(); caches.open(VERSION).then(k=>k.put(e.request,c)); return resp; })
+        .catch(() => caches.match(e.request).then(h => h || caches.match("./index.html")))
+    );
+    return;
+  }
 
   if (isData) {
     // Network-first for data.

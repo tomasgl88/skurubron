@@ -165,13 +165,17 @@ async function getData({ force = false } = {}) {
   try {
     setStatus("Hämtar data …");
     const fresh = await fetchData();
-    const cachedYM = cached ? ymInt(cached.latest_month) : 0;
-    if (ymInt(fresh.latest_month) > cachedYM || force || !cached) {
+    // Adopt the freshly fetched data whenever it DIFFERS from what we cached --
+    // not only when latest_month is newer. A value inside an existing month can
+    // change (e.g. a fee figure getting published later) without the month
+    // advancing, and we must not keep showing the stale copy in that case.
+    const changed = !cached || JSON.stringify(fresh) !== JSON.stringify(cached);
+    if (changed) {
       localStorage.setItem(LS_KEY, JSON.stringify(fresh));
       setStatus(`Uppdaterad. Senaste månad: ${fresh.latest_month}.`);
       return fresh;
     }
-    setStatus(`Ingen ny data ännu. Senaste månad: ${cached.latest_month}.`);
+    setStatus(`Ingen ny data. Senaste månad: ${cached.latest_month}.`);
     return cached;
   } catch (err) {
     if (cached) { setStatus(`Offline – visar sparad data (${cached.latest_month}).`); return cached; }
