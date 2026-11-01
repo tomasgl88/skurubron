@@ -234,7 +234,7 @@ function render(data) {
   // Fee data lags passages by a month, so only plot months that actually have a
   // published fee total. This avoids the line/fill dropping to 0 for the most
   // recent (not-yet-reported) month.
-  const feeRows = rows.filter(r => r.fee_amount_total != null);
+  const feeRows = rows.filter(r => r.fee_amount_total != null).reverse();  // newest to the left
   charts.push(new Chart(document.getElementById("feeChart"), {
     type:"line",
     data:{ labels: feeRows.map(r => `${MONTHS[r.month]} ${String(r.year).slice(2)}`),
