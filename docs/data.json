@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-02T13:32:14",
+  "updated": "2026-11-03T12:49:59",
   "source": "https://www.transportstyrelsen.se/sv/om-oss/statistik-och-analys/statistik-inom-vagtrafik/infrastrukturavgift-statistik/skurubron/",
   "latest_month": "2026-09",
   "months": [
@@ -429,11 +429,11 @@
       "passages_total": 1641400,
       "foreign_share_pct": 1,
       "passages_chargeable": 1560800,
-      "fee_decisions_se": null,
-      "fee_amount_se": null,
-      "fee_decisions_foreign": null,
-      "fee_amount_foreign": null,
-      "fee_amount_total": null
+      "fee_decisions_se": 169300,
+      "fee_amount_se": 6213400,
+      "fee_decisions_foreign": 1230,
+      "fee_amount_foreign": 29800,
+      "fee_amount_total": 6243200
     }
   ]
 }
