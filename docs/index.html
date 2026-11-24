@@ -56,6 +56,7 @@
   .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .refresh { background:var(--accent); color:#06202e; border:none; border-radius:999px;
     padding:9px 16px; font-size:.9rem; font-weight:600; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .refreshbar { text-align:center; margin:8px 0 32px; }
   .refresh:active { opacity:.8; }
   .refresh[disabled] { opacity:.5; cursor:default; }
   .status { color:var(--muted); font-size:.78rem; min-height:1.1em; margin:2px 0 20px; }
@@ -65,7 +66,6 @@
 <body>
   <div class="topbar">
     <h1>Skurubron – passager &amp; broavgift</h1>
-    <button class="refresh" id="refreshBtn">Uppdatera</button>
   </div>
   <div class="sub" id="meta"></div>
   <div class="status" id="status"></div>
@@ -112,6 +112,11 @@
       faktiskt inbetalt belopp per månad – inte hur stor andel av ett slutmål det utgör.
       Källa: Trafikverket, projekt Väg 222 Skurubron.
     </p>
+  </div>
+
+  <div class="refreshbar">
+    <button class="refresh" id="refreshBtn">Uppdatera</button>
+    <p class="note">Data uppdateras automatiskt varje dag. Använd bara knappen vid behov – den hämtar från Transportstyrelsen.</p>
   </div>
 
 <script>
@@ -277,5 +282,7 @@ if ("serviceWorker" in navigator) {
 
 boot(false);
 </script>
+<script data-goatcounter="https://skurubron.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>

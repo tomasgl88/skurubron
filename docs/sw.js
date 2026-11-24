@@ -4,7 +4,7 @@
 //     and works fully offline.
 //   - data.json: network-first with cache fallback, so when online we pick up a
 //     freshly published month, but offline we still show the last data we had.
-const VERSION = "skurubron-v6";
+const VERSION = "skurubron-v8";
 const SHELL = [
   "./index.html",
   "./manifest.webmanifest",
@@ -27,6 +27,10 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
+
+  // Analytics (GoatCounter): never intercept or cache, always go straight to network.
+  if (url.hostname.endsWith("goatcounter.com") || url.hostname === "gc.zgo.at") return;
+
   const isData = url.pathname.endsWith("/data.json") || url.pathname.endsWith("data.json");
 
   // Network-first for the app page itself, so UI/code updates always take effect
